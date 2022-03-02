@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<link href="scriptstyle.css" rel="stylesheet" type="text/css" />
+<html>
+<body>
+
+<h1>Unity Mutator</h1>
+
+<h2> Mutation score: {{ mutation_score }} </h2>
+Killed {{ killed_amt|int }}/{{ total_amt|int }} mutations
+<br>
+<ul>
+{% for test_run in test_runs %}
+   <li>
+   {{ test_run.final_result }}, TOTAL: {{ test_run.tests_run }}, PASSED: {{ test_run.tests_passed }}, FAILED: {{ test_run.tests_failed }}
+   <br>ORIGINAL LINE: {{ test_run.original_line }}
+   <br>MUTATED LINE: {{ test_run.mutated_line }}
+   <br>MUTATION LINE NUMBER: {{ test_run.mutation_line_number }}
+   <details>
+	<summary> Show full script ({{ test_run.mutated_file_name}}) </summary>
+		<span>
+			<pre>
+{{ test_run.full_script }}
+			</pre>
+		</span>
+	</details>
+   <br/><br/><hr><br/><br/>
+   </li>
+{% endfor %}
+</ul>
+
+</body>
+</html>
+
