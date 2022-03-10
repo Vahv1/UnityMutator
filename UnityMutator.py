@@ -1,12 +1,15 @@
 # TODO Create MutatedScripts-folder at start of execution and delete it at the end
-# TODO RESULTS FOLDER NIMEEN MUU TUNNISTE KUN RIVINUMERO LISÄKS
 # TODO TEHÄÄNKÖ MUTAATIOO OLLENKAAN SCIRPTS-ALAKANSIOISSA OLEVILLE SKRIPTEILLE?
 # TODO MITÄ JOS SAMALLA RIVILLÄ MONTA MUTATOITAVAA ESIM. TRANSFORM.FORWARD JA TRANSFORM.UP
+# TODO MULTILINE COMMENTIT MUTATOIDAAN MYÖS, MITÄHÄN SILLE VOIS TEHDÄ
+# TODO SCRIPTSTYLE PITÄÄ PALAUTTAA HTML KANSIOON JOKA LAITTAA RIVINUMEROT
 import os
 import shutil
+from pathlib import Path
 from os import path
 from os import listdir
 from datetime import datetime
+from MutationOperator import MutationOperator
 from distutils.dir_util import copy_tree
 import subprocess
 import time
@@ -19,54 +22,67 @@ TAG_MANAGER_LINE_START = "  - "  # Lines containing Tags start with this in TagM
 # NOTE! This assumes original project has all scripts in a folder named "Scripts". Otherwise problems may occur.
 MUTATED_SCRIPTS_FOLDER = "E:/kurssit/GRADU/UnityMutator/MutatedScripts/Scripts"
 BACKUP_SCRIPTS_FOLDER = "E:/kurssit/GRADU/UnityMutator/BackupScripts"
-RESULTS_FOLDER = "E:/kurssit/GRADU/UnityMutator/Results"
-MUTATION_RUN_RESULTS_FOLDER = ""  # This should be set-up with timestamp as folder name when mutation is started
+RESULTS_FOLDER = Path("E:/kurssit/GRADU/UnityMutator/Results")
+MUTATION_RUN_RESULTS_FOLDER = Path("")  # This should be set-up with timestamp as folder name when mutation is started
 TEMP_RESULTS_FILE_PATH = "E:/kurssit/GRADU/UnityMutator/unity_test_results.xml"
 TEMP_RESULTS_LOG_PATH = "E:/kurssit/GRADU/UnityMutator/unity_test_log.txt"
 COROUTINE_MOCK_UP_PATH = "E:/kurssit/GRADU/UnityMutator/CoroutineMockUp.cs"
 CS_FILE_TYPE = ".cs"
 MUTATED_FILE_AFFIX = "_mutated_"
 
-# Space before method names so it won't trigger on custom methods like GameStart()
-MUTATION_OPERATORS = {
-    "start": [" Start()", " Start ()"],
-    "awake": [" Awake()", " Awake ()"],
-    "update": [" Update()", " Update ()"],
-    "fixed_update": [" FixedUpdate()", " FixedUpdate ()"],
-    "destroy": [" Destroy(", " Destroy ("],
-    "instantiate": [" Instantiate(", " Instantiate (", ".Instantiate(", ".Instantiate ("],
-    "gameobject_find": [" GameObject.Find(", " GameObject.Find ("],
-    "get_child": [".GetChild(", ".GetChild ("],
-    "compare_tag": [".CompareTag(", ".CompareTag ("],
-    "find_objects_with_tag": [".FindGameObjectsWithTag(", ".FindGameGameObjectsWithTag ("],
-    "find_with_tag": [".FindWithTag(", ".FindWithTag ("],
-    "set_active": [".SetActive(", ".SetActive ("],
-    "load_scene": [".LoadScene(", ".LoadScene ("],
-    "invoke": [" Invoke(", " Invoke ("],
-    "invoke_repeating": [" InvokeRepeating(", " InvokeRepeating ("],
-    "add_listener": [".AddListener(", ".AddListener ("],
-    "vector3_direction": ["Vector3."],  # TODO pitäskö nää ottaa tarkemmin, nyt triggeraa kaikista Vector3. -muodoista
-    "vector2_direction": ["Vector2."],
-    "transform_direction": ["transform.up", "transform.forward", "transform.right"],
-    "deltatime": ["Time.deltaTime"],
-    "fixed_deltatime": ["Time.fixedDeltaTime"],
-    "transform_parent": ["transform.parent"],
-    "transform_set_parent": [".SetParent(", ".SetParent ("],
-    "vector_axis": [".x", ".y", ".z"],
-    "coroutine": ["StartCoroutine(", "StartCoroutine ("]
-}
-# Not perfect list as comment line can also start with '*' but that can also be multiplication operator...
+# Must be initialized with list of MutationOperator-objects
+MUT_OPS = []
+
+# Not a perfect list as comment line can also start with '*' but that can also be multiplication operator...
 C_SHARP_COMMENT_SYNTAX = ["//", "/*", "*/"]
+
+
+def init_mutation_operators():
+    # TODO this should be done elsewhere more cleanly
+    MUT_OPS.append(MutationOperator("start", [" Start()", " Start ()"], "mutate_start"))
+    MUT_OPS.append(MutationOperator("awake", [" Awake()", " Awake ()"], "mutate_awake"))
+    MUT_OPS.append(MutationOperator("update", [" Update()", " Update ()"], "mutate_update"))
+    MUT_OPS.append(MutationOperator("fixed_update", [" FixedUpdate()", " FixedUpdate ()"], "mutate_fixed_update"))
+    MUT_OPS.append(MutationOperator("destroy", [" Destroy(", " Destroy ("], "mutate_destroy"))
+    MUT_OPS.append(MutationOperator("instantiate", [" Instantiate(", " Instantiate (", ".Instantiate(", ".Instantiate ("], "mutate_instantiate"))
+    MUT_OPS.append(MutationOperator("gameobject_find", [" GameObject.Find(", " GameObject.Find ("], "mutate_gameobject_find"))
+    MUT_OPS.append(MutationOperator("get_child", [".GetChild(", ".GetChild ("], "mutate_get_child"))
+    MUT_OPS.append(MutationOperator("compare_tag", [".CompareTag(", ".CompareTag ("], "mutate_compare_tag"))
+    MUT_OPS.append(MutationOperator("find_objects_with_tag", [".FindGameObjectsWithTag(", ".FindGameGameObjectsWithTag ("], "mutate_find_objects_with_tag"))
+    MUT_OPS.append(MutationOperator("find_with_tag", [".FindWithTag(", ".FindWithTag ("], "mutate_find_with_tag"))
+    MUT_OPS.append(MutationOperator("set_active", [".SetActive(", ".SetActive ("], "mutate_set_active"))
+    MUT_OPS.append(MutationOperator("load_scene", [".LoadScene(", ".LoadScene ("], "mutate_scene_load"))
+    MUT_OPS.append(MutationOperator("invoke", [" Invoke(", " Invoke ("], "mutate_invoke"))
+    MUT_OPS.append(MutationOperator("invoke_repeating", [" InvokeRepeating(", " InvokeRepeating ("], "mutate_invoke_repeating"))
+    MUT_OPS.append(MutationOperator("add_listener", [".AddListener(", ".AddListener ("], "mutate_add_listener"))
+    MUT_OPS.append(MutationOperator("vector3_direction", ["Vector3."], "mutate_vector3_direction"))
+    MUT_OPS.append(MutationOperator("vector2_direction", ["Vector2."], "mutate_vector2_direction"))
+    MUT_OPS.append(MutationOperator("transform_direction", ["transform.up", "transform.forward", "transform.right"], "mutate_transform_direction"))
+    MUT_OPS.append(MutationOperator("deltatime", ["Time.deltaTime"], "mutate_deltatime"))
+    MUT_OPS.append(MutationOperator("fixed_deltatime", ["Time.fixedDeltaTime"], "mutate_fixed_deltatime"))
+    MUT_OPS.append(MutationOperator("transform_parent", ["transform.parent"], "mutate_transform_parent"))
+    MUT_OPS.append(MutationOperator("transform_set_parent", [".SetParent(", ".SetParent ("], "mutate_transform_set_parent"))
+    MUT_OPS.append(MutationOperator("vector_axis", [".x", ".y", ".z"], "mutate_vector_axis"))
+    MUT_OPS.append(MutationOperator("coroutine", ["StartCoroutine(", "StartCoroutine ("], "mutate_coroutine"))
+
+
+def get_mut_op(name):
+    """ Returns MutationOperator object by given name """
+    for op in MUT_OPS:
+        if op.name is name:
+            return op
+
 
 ''' =================== MUTATION OPERATORS =================== '''
 
 
+# TODO full_script_lines parametrin voi ottaa pois niistä missä ei tarvita
 # Mutates Start()-lines
 def mutate_start(line, full_script_lines):
     # Don't mutate Start() to Awake() if there is already Awake()-method in the script
     for script_line in full_script_lines:
-        for op in MUTATION_OPERATORS["awake"]:
-            if op in script_line:
+        for syntax in get_mut_op("awake").syntax:
+            if syntax in script_line:
                 print("Script already contains both awake and start methods, so not mutating line with start()")
                 return None
     else:
@@ -78,8 +94,8 @@ def mutate_start(line, full_script_lines):
 def mutate_awake(line, full_script_lines):
     # Don't mutate Awake() to Start() if there is already Start()-method in the script
     for script_line in full_script_lines:
-        for op in MUTATION_OPERATORS["start"]:
-            if op in script_line:
+        for syntax in get_mut_op("start").syntax:
+            if syntax in script_line:
                 print("Script already contains both start and awake methods, so not mutating line with awake()")
                 return None
     else:
@@ -91,8 +107,8 @@ def mutate_awake(line, full_script_lines):
 def mutate_update(line, full_script_lines):
     # Don't mutate Update() to FixedUpdate() if there is already FixedUpdate()-method in the script
     for script_line in full_script_lines:
-        for op in MUTATION_OPERATORS["fixed_update"]:
-            if op in script_line:
+        for syntax in get_mut_op("fixed_update").syntax:
+            if syntax in script_line:
                 print("Script already contains both fixedupdate and update methods, so not mutating line with update()")
                 return None
     else:
@@ -104,8 +120,8 @@ def mutate_update(line, full_script_lines):
 def mutate_fixed_update(line, full_script_lines):
     # Don't mutate FixedUpdate() to Update() if there is already Update()-method in the script
     for script_line in full_script_lines:
-        for op in MUTATION_OPERATORS["update"]:
-            if op in script_line:
+        for syntax in get_mut_op("update").syntax:
+            if syntax in script_line:
                 print("Script already contains both update and fixedupdate methods, so not mutating line with fixedupdate()")
                 return None
     else:
@@ -320,7 +336,7 @@ def mutate_transform_set_parent(line, full_script_lines):
     new_line = replace_single_parameter(line, "SetParent", "null", multiple_parameters=True)
     return new_line
 
-
+# TODO hajoo koska luo scripts kansion ennen copy_treetä, mieti ratkasu
 def mutate_coroutine(line, full_script_lines):
     # First need to create a script containing valid coroutine so coroutine calls can be mutated to use that
     os.makedirs(MUTATED_SCRIPTS_FOLDER)
@@ -448,8 +464,8 @@ def replace_single_parameter(line, method_name, mutated_parameter="null", multip
 
 # Checks given line for any syntax matching mutation operators and returns matching operator or None if not found
 def get_mutation_operator(code_line):
-    for op in MUTATION_OPERATORS:
-        for syntax in MUTATION_OPERATORS[op]:
+    for op in MUT_OPS:
+        for syntax in op.syntax:
             if syntax in code_line:
                 return op
     print("get_mutation_operator called but given code line didn't contain any syntax matching to mutation operators")
@@ -460,7 +476,7 @@ def get_mutation_operator(code_line):
 # Copies all scripts from Unity projects Scripts-folder to a new folder except for given script (that is being mutated)
 def copy_non_mutated_scripts(new_dir_path, exception_file_name):
     # Copy Script folder's contents to given new folder
-    copy_tree(BACKUP_SCRIPTS_FOLDER, new_dir_path)
+    shutil.copytree(BACKUP_SCRIPTS_FOLDER, new_dir_path)
     print(f"Copied all files from {BACKUP_SCRIPTS_FOLDER} to {new_dir_path}")
 
     # Remove copied file with name of exception_file_name.
@@ -487,8 +503,8 @@ def line_is_mutable(line):
             return False
 
     # Return true if any mutation operator syntax is in line
-    for op in MUTATION_OPERATORS:
-        for syntax in MUTATION_OPERATORS[op]:
+    for op in MUT_OPS:
+        for syntax in op.syntax:
             if syntax in line:
                 print(f"syntax: {syntax} | line: {line}")
                 return True
@@ -498,60 +514,7 @@ def line_is_mutable(line):
 # Calls appropriate function depending on mutation operator in the given line
 def create_mutation(line, full_script_lines):
     op = get_mutation_operator(line)
-    mutation = None
-
-    if op == "start":
-        mutation = mutate_start(line, full_script_lines)
-    elif op == "awake":
-        mutation = mutate_awake(line, full_script_lines)
-    elif op == "update":
-        mutation = mutate_update(line, full_script_lines)
-    elif op == "fixed_update":
-        mutation = mutate_fixed_update(line, full_script_lines)
-    elif op == "destroy":
-        mutation = mutate_destroy(line, full_script_lines)
-    elif op == "instantiate":
-        mutation = mutate_instantiate(line, full_script_lines)
-    elif op == "gameobject_find":
-        mutation = mutate_gameobject_find(line, full_script_lines)
-    elif op == "get_child":
-        mutation = mutate_get_child(line, full_script_lines)
-    elif op == "compare_tag":
-        mutation = mutate_compare_tag(line, full_script_lines)
-    elif op == "find_objects_with_tag":
-        mutation = mutate_find_objects_with_tag(line, full_script_lines)
-    elif op == "find_with_tag":
-        mutation = mutate_find_with_tag(line, full_script_lines)
-    elif op == "set_active":
-        mutation = mutate_set_active(line, full_script_lines)
-    elif op == "load_scene":
-        mutation = mutate_scene_load(line, full_script_lines)
-    elif op == "invoke":
-        mutation = mutate_invoke(line, full_script_lines)
-    elif op == "invoke_repeating":
-        mutation = mutate_invoke_repeating(line, full_script_lines)
-    elif op == "add_listener":
-        mutation = mutate_add_listener(line, full_script_lines)
-    elif op == "vector3_direction":
-        mutation = mutate_vector3_direction(line, full_script_lines)
-    elif op == "vector2_direction":
-        mutation = mutate_vector2_direction(line, full_script_lines)
-    elif op == "transform_direction":
-        mutation = mutate_transform_direction(line, full_script_lines)
-    elif op == "deltatime":
-        mutation = mutate_deltatime(line, full_script_lines)
-    elif op == "fixed_deltatime":
-        mutation = mutate_fixed_deltatime(line, full_script_lines)
-    elif op == "transform_parent":
-        mutation = mutate_transform_parent(line, full_script_lines)
-    elif op == "transform_set_parent":
-        mutation = mutate_transform_set_parent(line, full_script_lines)
-    elif op == "vector_axis":
-        mutation = mutate_vector_axis(line, full_script_lines)
-    elif op == "coroutine":
-        mutation = mutate_coroutine(line, full_script_lines)
-    else:
-        print("create_mutation was called with string that didn't contain mutation operators, THIS SHOULDN'T HAPPEN")
+    mutation = op.function(line, full_script_lines)
 
     return mutation
 
@@ -620,9 +583,9 @@ def mutate_script(file_name):
             shutil.move(TEMP_RESULTS_FILE_PATH, f"{mutation_results_path}/{new_results_file_name}")
             # Create data file to same subfolder
             f = open(f"{mutation_results_path}/mutation_data_line_{i}.xml", 'w')
-            # Create xml-formatted lines by removing leading and trailing white space and replacing quotes with &quot;
-            xml_old_line = old_line.replace("\"", "&quot;").strip()
-            xml_new_line = mutated_line.replace("\"", "&quot;").strip()
+            # Create xml-formatted lines by removing leading and trailing white space and escaping needed characters
+            xml_old_line = ResultsParser.escape_xml(old_line).strip()
+            xml_new_line = ResultsParser.escape_xml(mutated_line).strip()
             f.write(f"<mutation_data original=\"{xml_old_line}\" mutation=\"{xml_new_line}\""
                     f" line_number=\"{i+1}\" file_name=\"{file_name}\"> </mutation_data>")
             f.close()
@@ -660,10 +623,13 @@ def mutate_unity_scripts():
 
 
 # Runs tests in Unity-project and saves results to an xml-file
-def run_unity_tests():
-    # TODO hard codettu unity projekti path, vois ottaa muuttuajasta senkin
+def run_unity_tests(unity_project_path=None):
+    # TODO tää häsellys pois tästä
+    if unity_project_path is None:
+        unity_project_path = Path("F:/Unity/Projects/GRADU")
+
     process = subprocess.run(["C:/Program Files/Unity/Hub/Editor/2020.3.20f1/Editor/Unity.exe",
-                              "-runTests", "-projectPath", "F:/Unity/Projects/GRADU",
+                              "-runTests", "-projectPath", unity_project_path.__str__(),
                               "-logFile",  TEMP_RESULTS_LOG_PATH,
                               "-testResults", TEMP_RESULTS_FILE_PATH,
                               "-testPlatform", "PlayMode"],
@@ -701,7 +667,7 @@ def main():
     print("This is Unity Mutator\n"
           "A program for creating mutated source code files from Unity game scripts\n"
           "======================================")
-
+    # TODO PITÄSKÖ ALUSSA TYHJENTÄÄ FOLDEREITA, ESIM MUTATEDSCRIPTS AINAKIN
     # Get Unity-project's Scripts-folder from user
     # TODO don't use global variables like this, pass as parameter instead? Also don't hard code values like this
     global UNITY_SCRIPT_FOLDER
@@ -709,13 +675,13 @@ def main():
     # TODO kato mitä näistä käytetään
     # UNITY_SCRIPT_FOLDER = input("Give Unity-project's Scripts-folder location")
     UNITY_SCRIPT_FOLDER = "F:/Unity/Projects/Gradu/Assets/Scripts"
-    #UNITY_SCRIPT_FOLDER = "E:/kurssit/GRADU/UnityMutator/FakeUnityProject/Assets/Scripts"
+    # UNITY_SCRIPT_FOLDER = "E:/kurssit/GRADU/UnityMutator/FakeUnityProject/Assets/Scripts"
     UNITY_TAG_MANAGER_ASSET = "F:/Unity/Projects/Gradu/ProjectSettings/TagManager.asset"
 
-    # Create results folder as a subfolder of MUTATION_RUN_RESULTS_FOLDER
+    # Create MUTATION_RUN_RESULTS_FOLDER folder as a subfolder of RESULTS_FOLDER
     global MUTATION_RUN_RESULTS_FOLDER
     t = datetime.now()
-    results_path = f"{RESULTS_FOLDER}/results_{t.year}_{t.month}_{t.day}_{t.hour}_{t.minute}_{t.second}"
+    results_path = RESULTS_FOLDER/f"results_{t.year}_{t.month}_{t.day}_{t.hour}_{t.minute}_{t.second}"
     os.mkdir(results_path)
     # Update global  MUTATION_RUN_RESULTS_FOLDER variable with path to new results folder
     MUTATION_RUN_RESULTS_FOLDER = results_path
@@ -748,4 +714,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

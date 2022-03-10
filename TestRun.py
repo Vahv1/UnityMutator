@@ -10,7 +10,7 @@ class TestResult(Enum):
 @dataclass
 class TestRun:
     def __init__(self, final_result, tests_run, tests_passed, tests_failed, original_line="",
-                 mutated_line="", mutation_line_number=0, mutated_file_name = "", full_script = ""):
+                 mutated_line="", mutation_line_number=0, mutated_file_name="", full_script=""):
         self.final_result = final_result
         self.tests_run = tests_run
         self.tests_passed = tests_passed

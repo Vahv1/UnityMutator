@@ -1,5 +1,6 @@
 from unittest import TestCase
 import UnityMutator
+import ResultsParser
 
 script_with_only_start = "E:/kurssit/GRADU/UnityMutator/UnitTestData/Enemy_with_start_and_both_updates.cs"
 script_with_only_awake = "E:/kurssit/GRADU/UnityMutator/UnitTestData/Projectile_with_only_awake.cs"
@@ -286,3 +287,21 @@ class Test(TestCase):
     def test_mutate_set_parent_old_is_null(self):
         mutated_line = UnityMutator.create_mutation("child.transform.SetParent(null);", filler_script)
         self.assertEqual(None, mutated_line)
+
+    # ===== RESULTSPARSER =====
+    def test_xml_escape(self):
+        original_string = "RaycastHit2D hit = Physics2D.Raycast(rb.positiondir, 3, 1 << LayerMask.NameToLayer(\"NPC\"))"
+        new_string = ResultsParser.escape_xml(original_string)
+        self.assertEqual(
+            "RaycastHit2D hit = Physics2D.Raycast(rb.positiondir, 3, 1 &lt;&lt; LayerMask.NameToLayer(&quot;NPC&quot;))",
+            new_string)
+
+        original_string = "if (letter1 == 'A' && letter2 == 'B' && letterAmount > 26) weHaveAlphabet = true"
+        new_string = ResultsParser.escape_xml(original_string)
+        self.assertEqual(
+            "if (char1 == &apos;A&apos; &amp;&amp; char2 == &apos;B&apos; &amp;&amp; letterAmount &gt; 26) weHaveAlphabet = true",
+            new_string)
+
+    # ===== CREAMUNITYTESTRUNNER =====
+
+
