@@ -14,6 +14,9 @@ test_tag_manager = "E:/kurssit/GRADU/UnityMutator/UnitTestData/TagManager.asset"
 
 class Test(TestCase):
 
+    def setUp(self):
+        UnityMutator.init_mutation_operators()
+
     # =========== BASE FUNCTIONS ===========
 
     def test_multi_param_replace(self):
@@ -299,7 +302,7 @@ class Test(TestCase):
         original_string = "if (letter1 == 'A' && letter2 == 'B' && letterAmount > 26) weHaveAlphabet = true"
         new_string = ResultsParser.escape_xml(original_string)
         self.assertEqual(
-            "if (char1 == &apos;A&apos; &amp;&amp; char2 == &apos;B&apos; &amp;&amp; letterAmount &gt; 26) weHaveAlphabet = true",
+            "if (letter1 == &apos;A&apos; &amp;&amp; letter2 == &apos;B&apos; &amp;&amp; letterAmount &gt; 26) weHaveAlphabet = true",
             new_string)
 
     # ===== CREAMUNITYTESTRUNNER =====

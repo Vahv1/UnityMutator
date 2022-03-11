@@ -10,7 +10,6 @@ from os import path
 from os import listdir
 from datetime import datetime
 from MutationOperator import MutationOperator
-from distutils.dir_util import copy_tree
 import subprocess
 import time
 import ResultsParser
@@ -20,13 +19,13 @@ UNITY_TAG_MANAGER_ASSET = ""
 UNITY_PROJECT_TAGS = []
 TAG_MANAGER_LINE_START = "  - "  # Lines containing Tags start with this in TagManager.asset
 # NOTE! This assumes original project has all scripts in a folder named "Scripts". Otherwise problems may occur.
-MUTATED_SCRIPTS_FOLDER = "E:/kurssit/GRADU/UnityMutator/MutatedScripts/Scripts"
-BACKUP_SCRIPTS_FOLDER = "E:/kurssit/GRADU/UnityMutator/BackupScripts"
+MUTATED_SCRIPTS_FOLDER = Path("E:/kurssit/GRADU/UnityMutator/MutatedScripts/Scripts")
+BACKUP_SCRIPTS_FOLDER = Path("E:/kurssit/GRADU/UnityMutator/BackupScripts")
 RESULTS_FOLDER = Path("E:/kurssit/GRADU/UnityMutator/Results")
 MUTATION_RUN_RESULTS_FOLDER = Path("")  # This should be set-up with timestamp as folder name when mutation is started
-TEMP_RESULTS_FILE_PATH = "E:/kurssit/GRADU/UnityMutator/unity_test_results.xml"
-TEMP_RESULTS_LOG_PATH = "E:/kurssit/GRADU/UnityMutator/unity_test_log.txt"
-COROUTINE_MOCK_UP_PATH = "E:/kurssit/GRADU/UnityMutator/CoroutineMockUp.cs"
+TEMP_RESULTS_FILE_PATH = Path("E:/kurssit/GRADU/UnityMutator/unity_test_results.xml")
+TEMP_RESULTS_LOG_PATH = Path("E:/kurssit/GRADU/UnityMutator/unity_test_log.txt")
+COROUTINE_MOCK_UP_PATH = Path("E:/kurssit/GRADU/UnityMutator/CoroutineMockUp.cs")
 CS_FILE_TYPE = ".cs"
 MUTATED_FILE_AFFIX = "_mutated_"
 
@@ -39,31 +38,31 @@ C_SHARP_COMMENT_SYNTAX = ["//", "/*", "*/"]
 
 def init_mutation_operators():
     # TODO this should be done elsewhere more cleanly
-    MUT_OPS.append(MutationOperator("start", [" Start()", " Start ()"], "mutate_start"))
-    MUT_OPS.append(MutationOperator("awake", [" Awake()", " Awake ()"], "mutate_awake"))
-    MUT_OPS.append(MutationOperator("update", [" Update()", " Update ()"], "mutate_update"))
-    MUT_OPS.append(MutationOperator("fixed_update", [" FixedUpdate()", " FixedUpdate ()"], "mutate_fixed_update"))
-    MUT_OPS.append(MutationOperator("destroy", [" Destroy(", " Destroy ("], "mutate_destroy"))
-    MUT_OPS.append(MutationOperator("instantiate", [" Instantiate(", " Instantiate (", ".Instantiate(", ".Instantiate ("], "mutate_instantiate"))
-    MUT_OPS.append(MutationOperator("gameobject_find", [" GameObject.Find(", " GameObject.Find ("], "mutate_gameobject_find"))
-    MUT_OPS.append(MutationOperator("get_child", [".GetChild(", ".GetChild ("], "mutate_get_child"))
-    MUT_OPS.append(MutationOperator("compare_tag", [".CompareTag(", ".CompareTag ("], "mutate_compare_tag"))
-    MUT_OPS.append(MutationOperator("find_objects_with_tag", [".FindGameObjectsWithTag(", ".FindGameGameObjectsWithTag ("], "mutate_find_objects_with_tag"))
-    MUT_OPS.append(MutationOperator("find_with_tag", [".FindWithTag(", ".FindWithTag ("], "mutate_find_with_tag"))
-    MUT_OPS.append(MutationOperator("set_active", [".SetActive(", ".SetActive ("], "mutate_set_active"))
-    MUT_OPS.append(MutationOperator("load_scene", [".LoadScene(", ".LoadScene ("], "mutate_scene_load"))
-    MUT_OPS.append(MutationOperator("invoke", [" Invoke(", " Invoke ("], "mutate_invoke"))
-    MUT_OPS.append(MutationOperator("invoke_repeating", [" InvokeRepeating(", " InvokeRepeating ("], "mutate_invoke_repeating"))
-    MUT_OPS.append(MutationOperator("add_listener", [".AddListener(", ".AddListener ("], "mutate_add_listener"))
-    MUT_OPS.append(MutationOperator("vector3_direction", ["Vector3."], "mutate_vector3_direction"))
-    MUT_OPS.append(MutationOperator("vector2_direction", ["Vector2."], "mutate_vector2_direction"))
-    MUT_OPS.append(MutationOperator("transform_direction", ["transform.up", "transform.forward", "transform.right"], "mutate_transform_direction"))
-    MUT_OPS.append(MutationOperator("deltatime", ["Time.deltaTime"], "mutate_deltatime"))
-    MUT_OPS.append(MutationOperator("fixed_deltatime", ["Time.fixedDeltaTime"], "mutate_fixed_deltatime"))
-    MUT_OPS.append(MutationOperator("transform_parent", ["transform.parent"], "mutate_transform_parent"))
-    MUT_OPS.append(MutationOperator("transform_set_parent", [".SetParent(", ".SetParent ("], "mutate_transform_set_parent"))
-    MUT_OPS.append(MutationOperator("vector_axis", [".x", ".y", ".z"], "mutate_vector_axis"))
-    MUT_OPS.append(MutationOperator("coroutine", ["StartCoroutine(", "StartCoroutine ("], "mutate_coroutine"))
+    MUT_OPS.append(MutationOperator("start", [" Start()", " Start ()"], mutate_start))
+    MUT_OPS.append(MutationOperator("awake", [" Awake()", " Awake ()"], mutate_awake))
+    MUT_OPS.append(MutationOperator("update", [" Update()", " Update ()"], mutate_update))
+    MUT_OPS.append(MutationOperator("fixed_update", [" FixedUpdate()", " FixedUpdate ()"], mutate_fixed_update))
+    MUT_OPS.append(MutationOperator("destroy", [" Destroy(", " Destroy ("], mutate_destroy))
+    MUT_OPS.append(MutationOperator("instantiate", [" Instantiate(", " Instantiate (", ".Instantiate(", ".Instantiate ("], mutate_instantiate))
+    MUT_OPS.append(MutationOperator("gameobject_find", [" GameObject.Find(", " GameObject.Find ("], mutate_gameobject_find))
+    MUT_OPS.append(MutationOperator("get_child", [".GetChild(", ".GetChild ("], mutate_get_child))
+    MUT_OPS.append(MutationOperator("compare_tag", [".CompareTag(", ".CompareTag ("], mutate_compare_tag))
+    MUT_OPS.append(MutationOperator("find_objects_with_tag", [".FindGameObjectsWithTag(", ".FindGameGameObjectsWithTag ("], mutate_find_objects_with_tag))
+    MUT_OPS.append(MutationOperator("find_with_tag", [".FindWithTag(", ".FindWithTag ("], mutate_find_with_tag))
+    MUT_OPS.append(MutationOperator("set_active", [".SetActive(", ".SetActive ("], mutate_set_active))
+    MUT_OPS.append(MutationOperator("load_scene", [".LoadScene(", ".LoadScene ("], mutate_scene_load))
+    MUT_OPS.append(MutationOperator("invoke", [" Invoke(", " Invoke ("], mutate_invoke))
+    MUT_OPS.append(MutationOperator("invoke_repeating", [" InvokeRepeating(", " InvokeRepeating ("], mutate_invoke_repeating))
+    MUT_OPS.append(MutationOperator("add_listener", [".AddListener(", ".AddListener ("], mutate_add_listener))
+    MUT_OPS.append(MutationOperator("vector3_direction", ["Vector3."], mutate_vector3_direction))
+    MUT_OPS.append(MutationOperator("vector2_direction", ["Vector2."], mutate_vector2_direction))
+    MUT_OPS.append(MutationOperator("transform_direction", ["transform.up", "transform.forward", "transform.right"], mutate_transform_direction))
+    MUT_OPS.append(MutationOperator("deltatime", ["Time.deltaTime"], mutate_deltatime))
+    MUT_OPS.append(MutationOperator("fixed_deltatime", ["Time.fixedDeltaTime"], mutate_fixed_deltatime))
+    MUT_OPS.append(MutationOperator("transform_parent", ["transform.parent"], mutate_transform_parent))
+    MUT_OPS.append(MutationOperator("transform_set_parent", [".SetParent(", ".SetParent ("], mutate_transform_set_parent))
+    MUT_OPS.append(MutationOperator("vector_axis", [".x", ".y", ".z"], mutate_vector_axis))
+    MUT_OPS.append(MutationOperator("coroutine", ["StartCoroutine(", "StartCoroutine ("], mutate_coroutine))
 
 
 def get_mut_op(name):
@@ -336,11 +335,10 @@ def mutate_transform_set_parent(line, full_script_lines):
     new_line = replace_single_parameter(line, "SetParent", "null", multiple_parameters=True)
     return new_line
 
-# TODO hajoo koska luo scripts kansion ennen copy_treetä, mieti ratkasu
+
 def mutate_coroutine(line, full_script_lines):
-    # First need to create a script containing valid coroutine so coroutine calls can be mutated to use that
-    os.makedirs(MUTATED_SCRIPTS_FOLDER)
-    shutil.copyfile(COROUTINE_MOCK_UP_PATH, MUTATED_SCRIPTS_FOLDER + "/CoroutineMockUp.cs")
+    """ NOTE! If this mutation is done, CoroutineMockup-script must be copied to MutatedScripts-folder
+        It can't be done here however, because this function is called before MutatedScripts-folder is created """
     # Mutate new line to call coroutine declared in CoroutineMockUp.cs
     new_line = replace_single_parameter(line, "StartCoroutine", "CoroutineMockUp.EmptyCoroutine()")
     return new_line
@@ -481,16 +479,16 @@ def copy_non_mutated_scripts(new_dir_path, exception_file_name):
 
     # Remove copied file with name of exception_file_name.
     # This is the script that was being mutated so it will be replaced with edited file.
-    os.remove(new_dir_path + "/" + exception_file_name)
+    os.remove(new_dir_path/exception_file_name)
 
 
 # Creates Scripts folder containing one mutation in one file and returns the folder path
 # This folder can be copied to Unity project and then test set can be run to see if that mutation is caught
-def create_new_mutation_folder(exception_file, line_number):
+def create_new_mutation_folder(exception_file):
     # Set name of new folder
     new_dir_path = MUTATED_SCRIPTS_FOLDER
     # Copy all script files that are not being mutated into the new folder
-    copy_non_mutated_scripts(MUTATED_SCRIPTS_FOLDER, exception_file)
+    copy_non_mutated_scripts(new_dir_path, exception_file)
 
     return new_dir_path
 
@@ -524,7 +522,7 @@ def mutate_script(file_name):
     print(f"Starting script mutation of {BACKUP_SCRIPTS_FOLDER}/{file_name}")
 
     # Read all lines of the original script to an array
-    script = open(BACKUP_SCRIPTS_FOLDER + "/" + file_name, 'r')
+    script = open(BACKUP_SCRIPTS_FOLDER/file_name, 'r')
     script_lines = script.readlines()
     script.close()
 
@@ -532,6 +530,8 @@ def mutate_script(file_name):
     for i in range(0, len(script_lines)):
 
         if line_is_mutable(script_lines[i]):
+            # Save mutation operator so we can check if it was Coroutine-mutation when creating MutatedScripts folder
+            mutation_operator = get_mutation_operator(script_lines[i])
             # Save old_line so it can be used later when displaying results
             old_line = script_lines[i]
             # Create mutated line
@@ -541,17 +541,25 @@ def mutate_script(file_name):
                 continue
             print(f"Mutated line: {mutated_line} | Old line: {old_line}")
 
-            # Create a list containing mutated script in lines which is copy of old script with one line mutated
+            # Create a list containing mutated script lines which is copy of old script with one line mutated
             mutated_script_lines = list(script_lines)
             mutated_script_lines[i] = mutated_line
 
             # Create new folder for mutated file to go into and get path to this new folder
             # This folder will be a copy of the WHOLE original Scripts-folder except for ONE file that has ONE mutation
-            mutated_folder_path = create_new_mutation_folder(file_name, i)
+            mutated_folder_path = create_new_mutation_folder(file_name)
+
+            # If we mutated Coroutine-method, CoroutineMockUp-script must be created to MUTATED_SCRIPTS_FOLDER
+            # TODO: this script should be created in mutate_coroutine but that doesn't work because then
+            #       create_new_mutation_folder returns error as MUTATED_SCRIPTS_FOLDER already exists when it tries
+            #       creating it
+            if mutation_operator.name == "coroutine":
+                shutil.copyfile(COROUTINE_MOCK_UP_PATH, MUTATED_SCRIPTS_FOLDER/"CoroutineMockUp.cs")
+
             print(f"Created new Scripts folder to {mutated_folder_path}")
 
             # Create new file to mutated_folder_path
-            mutated_file_path = mutated_folder_path + "/" + file_name
+            mutated_file_path = mutated_folder_path/file_name
             new_script = open(mutated_file_path, 'w+')
             # Write the mutated lines to new file
             new_script.writelines(mutated_script_lines)
@@ -577,7 +585,7 @@ def mutate_script(file_name):
             new_results_file_name = results_file_name + "_" + file_name_no_ext + "_line_" + str(i) + results_file_ext
 
             # Create subfolder for results of this mutation as mutation_EnemyHandler_line_32 -format
-            mutation_results_path = f"{MUTATION_RUN_RESULTS_FOLDER}/mutation_{file_name_no_ext}_line_{i}"
+            mutation_results_path = MUTATION_RUN_RESULTS_FOLDER/"mutation_{file_name_no_ext}_line_{i}"
             os.mkdir(mutation_results_path)
             # Move test results to subfolder
             shutil.move(TEMP_RESULTS_FILE_PATH, f"{mutation_results_path}/{new_results_file_name}")
@@ -622,19 +630,16 @@ def mutate_unity_scripts():
             mutate_script(file)
 
 
-# Runs tests in Unity-project and saves results to an xml-file
-def run_unity_tests(unity_project_path=None):
-    # TODO tää häsellys pois tästä
-    if unity_project_path is None:
-        unity_project_path = Path("F:/Unity/Projects/GRADU")
+def run_unity_tests(unity_project_path="F:/Unity/Projects/GraduPlatformer"):
+    """ Runs test set of given Unity-project"""
 
-    process = subprocess.run(["C:/Program Files/Unity/Hub/Editor/2020.3.20f1/Editor/Unity.exe",
-                              "-runTests", "-projectPath", unity_project_path.__str__(),
-                              "-logFile",  TEMP_RESULTS_LOG_PATH,
-                              "-testResults", TEMP_RESULTS_FILE_PATH,
-                              "-testPlatform", "PlayMode"],
-                             stdout=subprocess.PIPE,
-                             universal_newlines=True)
+    subprocess.run(["C:/Program Files/Unity/Hub/Editor/2020.3.20f1/Editor/Unity.exe",
+                    "-runTests", "-projectPath", unity_project_path.__str__(),
+                    "-logFile",  TEMP_RESULTS_LOG_PATH.__str__(),
+                    "-testResults", TEMP_RESULTS_FILE_PATH.__str__(),
+                    "-testPlatform", "PlayMode"],
+                   stdout=subprocess.PIPE,
+                   universal_newlines=True)
 
 
 # Adds Unity-project's tags from given TagManager.asset path to global variable UNITY_PROJECT_TAGS
@@ -667,16 +672,17 @@ def main():
     print("This is Unity Mutator\n"
           "A program for creating mutated source code files from Unity game scripts\n"
           "======================================")
-    # TODO PITÄSKÖ ALUSSA TYHJENTÄÄ FOLDEREITA, ESIM MUTATEDSCRIPTS AINAKIN
-    # Get Unity-project's Scripts-folder from user
-    # TODO don't use global variables like this, pass as parameter instead? Also don't hard code values like this
+
+    init_mutation_operators()
+
+    # TODO Should some folders be reseted at start, like MutatedScripts?
+    # Get Unity-project's Scripts-folder and TagManager from user
     global UNITY_SCRIPT_FOLDER
     global UNITY_TAG_MANAGER_ASSET
-    # TODO kato mitä näistä käytetään
-    # UNITY_SCRIPT_FOLDER = input("Give Unity-project's Scripts-folder location")
-    UNITY_SCRIPT_FOLDER = "F:/Unity/Projects/Gradu/Assets/Scripts"
-    # UNITY_SCRIPT_FOLDER = "E:/kurssit/GRADU/UnityMutator/FakeUnityProject/Assets/Scripts"
-    UNITY_TAG_MANAGER_ASSET = "F:/Unity/Projects/Gradu/ProjectSettings/TagManager.asset"
+    project_script_folder_path = input("Give location of Unity project's Scripts-folder ")
+    project_tag_manager_path = input("Give location of Unity project's TagManager-asset")
+    UNITY_SCRIPT_FOLDER = Path(project_script_folder_path)
+    UNITY_TAG_MANAGER_ASSET = Path(project_tag_manager_path)
 
     # Create MUTATION_RUN_RESULTS_FOLDER folder as a subfolder of RESULTS_FOLDER
     global MUTATION_RUN_RESULTS_FOLDER
