@@ -1,8 +1,7 @@
 # TODO Create MutatedScripts-folder at start of execution and delete it at the end
-# TODO TEHÄÄNKÖ MUTAATIOO OLLENKAAN SCIRPTS-ALAKANSIOISSA OLEVILLE SKRIPTEILLE?
 # TODO MITÄ JOS SAMALLA RIVILLÄ MONTA MUTATOITAVAA ESIM. TRANSFORM.FORWARD JA TRANSFORM.UP
 # TODO MULTILINE COMMENTIT MUTATOIDAAN MYÖS, MITÄHÄN SILLE VOIS TEHDÄ
-# TODO SCRIPTSTYLE PITÄÄ PALAUTTAA HTML KANSIOON JOKA LAITTAA RIVINUMEROT
+# TODO Mutation Line Number on väärä result_datassa, yhden liian pieni. Miks? Lisätään +1 ennen xml kirjotusta jo nyt
 import os
 import shutil
 from pathlib import Path
@@ -528,7 +527,6 @@ def mutate_script(file_name):
 
     # Go through all instances of mutable lines in the file since last mutation
     for i in range(0, len(script_lines)):
-
         if line_is_mutable(script_lines[i]):
             # Save mutation operator so we can check if it was Coroutine-mutation when creating MutatedScripts folder
             mutation_operator = get_mutation_operator(script_lines[i])
@@ -588,7 +586,7 @@ def mutate_script(file_name):
             mutation_results_path = MUTATION_RUN_RESULTS_FOLDER/"mutation_{file_name_no_ext}_line_{i}"
             os.mkdir(mutation_results_path)
             # Move test results to subfolder
-            shutil.move(TEMP_RESULTS_FILE_PATH, f"{mutation_results_path}/{new_results_file_name}")
+            shutil.move(TEMP_RESULTS_FILE_PATH, mutation_results_path/new_results_file_name)
             # Create data file to same subfolder
             f = open(f"{mutation_results_path}/mutation_data_line_{i}.xml", 'w')
             # Create xml-formatted lines by removing leading and trailing white space and escaping needed characters
@@ -619,10 +617,9 @@ def mutate_unity_scripts():
     # Go through all .cs-files and systematically do all possible mutations to them
     # NOTE: Uses backup-scripts folder so original scripts must be copied to backup-folder before this
     # No mutations are done to backup-folder so it always has the original scripts
-    unity_script_files = listdir(BACKUP_SCRIPTS_FOLDER)
-    for file in unity_script_files:
+    for file in BACKUP_SCRIPTS_FOLDER.rglob("*"):
         # Ignore files with wrong extension
-        if not file.endswith(CS_FILE_TYPE):
+        if not file.suffix == CS_FILE_TYPE:
             print(f"{file} is not a .cs file so not mutating it")
             print("======================================")
         # Mutate files with .cs-extension
@@ -694,7 +691,7 @@ def main():
 
     global BACKUP_SCRIPTS_FOLDER
     # Create backup-copy of the original scripts folder
-    backups_path = f"{BACKUP_SCRIPTS_FOLDER}/BACKUP_SCRIPTS_{t.year}_{t.month}_{t.day}_{t.hour}_{t.minute}_{t.second}"
+    backups_path = BACKUP_SCRIPTS_FOLDER/"BACKUP_SCRIPTS_{t.year}_{t.month}_{t.day}_{t.hour}_{t.minute}_{t.second}"
     print(f"Copying backup of original scripts to {backups_path}")
     shutil.copytree(UNITY_SCRIPT_FOLDER, backups_path)
     # Update global BACKUP_SCRIPTS_FOLDER variable with path to new backup folder

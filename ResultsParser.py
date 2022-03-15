@@ -9,7 +9,7 @@ from TestRun import TestRun
 from TestRun import TestResult
 
 # TODO TEMP FOR TESTING
-RESULTS_FOLDER = Path("E:/kurssit/GRADU/UnityMutator/Results/results_2022_3_4_18_32_21")
+RESULTS_FOLDER = Path("E:/kurssit/GRADU/UnityMutator/Results/results_2022_3_2_17_32_13")
 
 # Names of css-classes for highlighting killed and survived mutants in html
 KILLED_CSS_CLASS = "killed"
@@ -25,9 +25,9 @@ def escape_xml(s):
 # Returns test results read from Unity Test Framework's results.xml file as a TestResult-object
 def str_to_test_result(result_str):
     if result_str == "Failed(Child)" or result_str == "Failed":
-        return TestResult.FAILED
+        return "killed"
     elif result_str == "Passed":
-        return TestResult.PASSED
+        return "survived"
 
 
 def parse_test_run(result_file_path, data_file_path, full_script=None):
@@ -77,6 +77,11 @@ def parse_test_run(result_file_path, data_file_path, full_script=None):
 # Returns dictionary of data related to whole set of test runs
 def get_mutation_set_data(test_runs):
     total_mutations = len(test_runs)
+
+    if total_mutations <= 0:
+        print("get_mutation_set_data was given a list of 0 mutations")
+        print("THIS SHOULD NOT HAPPEN")
+
     survived = get_passed_amt(test_runs)  # Passed test set means mutation survived
     killed = total_mutations - survived   # Failed test set means mutation was killed
     mutation_score = killed / total_mutations

@@ -1,0 +1,36 @@
+html, body {font-family:Helvetica, Arial, sans-serif}
+
+pre.code {
+  white-space: pre-wrap;
+  margin-left: 8em;
+}
+
+pre.code::before {
+  counter-reset: listing;
+}
+
+pre.code code {
+  counter-increment: listing;
+  text-align: left;
+  float: left;
+  clear: left;
+}
+
+pre.code code::before {
+  content: counter(listing) " ";
+  display: inline-block;
+  float: left;
+  width: 3.5em;
+  height: 1em;
+  padding-left: auto;
+  margin-right: 25px;
+  text-align: right;
+}
+
+.killed {
+	background-color: forestgreen;
+}
+
+.survived {
+	background-color: crimson;
+}
