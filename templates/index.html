@@ -12,9 +12,9 @@ Killed {{ killed_amt|int }}/{{ total_amt|int }} mutations
 {% for test_run in test_runs %}
 	<li>
 	{% if test_run.final_result == 'killed' %}
-		<p style="color:red;">MUTATION KILLED</p>
+		<p style="color:red;">{{loop.index}}) MUTATION KILLED</p>
 	{% else %}
-		<p style="color:green;">MUTATION SURVIVED</p>
+		<p style="color:green;">{{loop.index}}) MUTATION SURVIVED</p>
 	{% endif %}
 	<br>TOTAL: {{ test_run.tests_run }}, PASSED: {{ test_run.tests_passed }}, FAILED: {{ test_run.tests_failed }}
 	<br>ORIGINAL LINE: {{ test_run.original_line }}

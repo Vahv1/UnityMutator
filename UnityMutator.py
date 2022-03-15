@@ -1,7 +1,6 @@
 # TODO Create MutatedScripts-folder at start of execution and delete it at the end
 # TODO MITÄ JOS SAMALLA RIVILLÄ MONTA MUTATOITAVAA ESIM. TRANSFORM.FORWARD JA TRANSFORM.UP
 # TODO MULTILINE COMMENTIT MUTATOIDAAN MYÖS, MITÄHÄN SILLE VOIS TEHDÄ
-# TODO Mutation Line Number on väärä result_datassa, yhden liian pieni. Miks? Lisätään +1 ennen xml kirjotusta jo nyt
 import os
 import shutil
 from pathlib import Path
@@ -13,7 +12,7 @@ import subprocess
 import time
 import ResultsParser
 
-UNITY_SCRIPT_FOLDER = ""
+UNITY_SCRIPT_FOLDER = Path("")
 UNITY_TAG_MANAGER_ASSET = ""
 UNITY_PROJECT_TAGS = []
 TAG_MANAGER_LINE_START = "  - "  # Lines containing Tags start with this in TagManager.asset
@@ -471,24 +470,22 @@ def get_mutation_operator(code_line):
 
 
 # Copies all scripts from Unity projects Scripts-folder to a new folder except for given script (that is being mutated)
-def copy_non_mutated_scripts(new_dir_path, exception_file_name):
+def copy_non_mutated_scripts(mutated_folder_path, exception_file_script_path):
     # Copy Script folder's contents to given new folder
-    shutil.copytree(BACKUP_SCRIPTS_FOLDER, new_dir_path)
-    print(f"Copied all files from {BACKUP_SCRIPTS_FOLDER} to {new_dir_path}")
-
+    shutil.copytree(BACKUP_SCRIPTS_FOLDER, mutated_folder_path)
+    print(f"Copied all files from {BACKUP_SCRIPTS_FOLDER} to {mutated_folder_path}")
     # Remove copied file with name of exception_file_name.
     # This is the script that was being mutated so it will be replaced with edited file.
-    os.remove(new_dir_path/exception_file_name)
+    os.remove(mutated_folder_path / exception_file_script_path)
 
 
 # Creates Scripts folder containing one mutation in one file and returns the folder path
 # This folder can be copied to Unity project and then test set can be run to see if that mutation is caught
-def create_new_mutation_folder(exception_file):
+def create_new_mutation_folder(exception_file_script_path):
     # Set name of new folder
     new_dir_path = MUTATED_SCRIPTS_FOLDER
     # Copy all script files that are not being mutated into the new folder
-    copy_non_mutated_scripts(new_dir_path, exception_file)
-
+    copy_non_mutated_scripts(new_dir_path, exception_file_script_path)
     return new_dir_path
 
 
@@ -516,15 +513,61 @@ def create_mutation(line, full_script_lines):
     return mutation
 
 
+def create_unity_test_result_file_name(script_name, mutation_line_number):
+    """ Creates file name for Unity test result report of a single test run with depending on given script name and
+        mutation line number"""
+    # Get default results-file path and extension separately
+    results_file_name = TEMP_RESULTS_FILE_PATH.stem
+    results_file_ext = TEMP_RESULTS_FILE_PATH.suffix
+
+    # Name results-file as unity_test_results_EnemyHandler_line_32.xml -format
+    new_results_file_name = f"{results_file_name}_{script_name}_line_{str(mutation_line_number)}{results_file_ext}"
+
+    return new_results_file_name
+
+
+def create_single_mutation_results_folder(file_name, mutation_line_number, mutated_script_lines, old_line, mutated_line):
+    """ Creates folder containing all data from Unity test run of a single mutant
+        This folder contains unity_test_results.xml, mutation_data.xml, and full_mutated_script.cs"""
+
+    file_name_no_ext = path.splitext(file_name)[0]
+
+    # Create name for file containing Unity test results of this mutation
+    new_results_file_name = create_unity_test_result_file_name(file_name_no_ext, mutation_line_number)
+
+    # Create subfolder for results of this mutation as mutation_EnemyHandler_line_32 -format
+    mutation_results_path = MUTATION_RUN_RESULTS_FOLDER/f"mutation_{file_name_no_ext}_line_{mutation_line_number}"
+    os.mkdir(mutation_results_path)
+    # Move test results to subfolder
+    shutil.move(TEMP_RESULTS_FILE_PATH, mutation_results_path/new_results_file_name)
+    # Create data file to same subfolder
+    f = open(f"{mutation_results_path}/mutation_data{file_name_no_ext}_line_{mutation_line_number}.xml", 'w')
+    # Create xml-formatted lines for data file
+    xml_old_line = ResultsParser.escape_xml(old_line).strip()
+    xml_new_line = ResultsParser.escape_xml(mutated_line).strip()
+    f.write(f"<mutation_data original=\"{xml_old_line}\" mutation=\"{xml_new_line}\""
+            f" line_number=\"{mutation_line_number+1}\" file_name=\"{file_name}\"> </mutation_data>")
+    f.close()
+
+    # Create a copy of the mutated script to same subfolder
+    f = open(f"{mutation_results_path}/{file_name}", 'w')
+    f.writelines(mutated_script_lines)
+    f.close()
+
+
 # Creates all mutations for given Unity script
-def mutate_script(file_name):
-    print(f"Starting script mutation of {BACKUP_SCRIPTS_FOLDER}/{file_name}")
+def mutate_script(file_path):
+    print(f"Starting script mutation of {file_path}")
+    # Path of the given file inside Scripts-folder
+    script_file_path = file_path.relative_to(BACKUP_SCRIPTS_FOLDER)
+
+    # File name of the given file (with extension)
+    file_name = script_file_path.name
 
     # Read all lines of the original script to an array
-    script = open(BACKUP_SCRIPTS_FOLDER/file_name, 'r')
+    script = open(file_path, 'r')
     script_lines = script.readlines()
     script.close()
-
     # Go through all instances of mutable lines in the file since last mutation
     for i in range(0, len(script_lines)):
         if line_is_mutable(script_lines[i]):
@@ -538,14 +581,13 @@ def mutate_script(file_name):
             if mutated_line is None:
                 continue
             print(f"Mutated line: {mutated_line} | Old line: {old_line}")
-
             # Create a list containing mutated script lines which is copy of old script with one line mutated
             mutated_script_lines = list(script_lines)
             mutated_script_lines[i] = mutated_line
 
             # Create new folder for mutated file to go into and get path to this new folder
             # This folder will be a copy of the WHOLE original Scripts-folder except for ONE file that has ONE mutation
-            mutated_folder_path = create_new_mutation_folder(file_name)
+            mutated_folder_path = create_new_mutation_folder(script_file_path)
 
             # If we mutated Coroutine-method, CoroutineMockUp-script must be created to MUTATED_SCRIPTS_FOLDER
             # TODO: this script should be created in mutate_coroutine but that doesn't work because then
@@ -557,7 +599,7 @@ def mutate_script(file_name):
             print(f"Created new Scripts folder to {mutated_folder_path}")
 
             # Create new file to mutated_folder_path
-            mutated_file_path = mutated_folder_path/file_name
+            mutated_file_path = mutated_folder_path/script_file_path
             new_script = open(mutated_file_path, 'w+')
             # Write the mutated lines to new file
             new_script.writelines(mutated_script_lines)
@@ -571,38 +613,15 @@ def mutate_script(file_name):
             print(f"Replaced original Scripts-folder with mutated Scripts-folder in {UNITY_SCRIPT_FOLDER}")
 
             # Run tests now that Unity-project has the mutated file in its Scripts-folder
-
             run_unity_tests()
             print(f"Test run ready, moving results.xml to {MUTATION_RUN_RESULTS_FOLDER}")
 
-            # Get results-file path and extension separately
-            results_file_name = path.splitext(path.basename(TEMP_RESULTS_FILE_PATH))[0]
-            results_file_ext = path.splitext(path.basename(TEMP_RESULTS_FILE_PATH))[1]
-            # Name results-file as results_EnemyHandler_line_32.xml -format
-            file_name_no_ext = path.splitext(file_name)[0]
-            new_results_file_name = results_file_name + "_" + file_name_no_ext + "_line_" + str(i) + results_file_ext
-
-            # Create subfolder for results of this mutation as mutation_EnemyHandler_line_32 -format
-            mutation_results_path = MUTATION_RUN_RESULTS_FOLDER/"mutation_{file_name_no_ext}_line_{i}"
-            os.mkdir(mutation_results_path)
-            # Move test results to subfolder
-            shutil.move(TEMP_RESULTS_FILE_PATH, mutation_results_path/new_results_file_name)
-            # Create data file to same subfolder
-            f = open(f"{mutation_results_path}/mutation_data_line_{i}.xml", 'w')
-            # Create xml-formatted lines by removing leading and trailing white space and escaping needed characters
-            xml_old_line = ResultsParser.escape_xml(old_line).strip()
-            xml_new_line = ResultsParser.escape_xml(mutated_line).strip()
-            f.write(f"<mutation_data original=\"{xml_old_line}\" mutation=\"{xml_new_line}\""
-                    f" line_number=\"{i+1}\" file_name=\"{file_name}\"> </mutation_data>")
-            f.close()
-            # Create a copy of the mutated script to same subfolder
-            f = open(f"{mutation_results_path}/{file_name}", 'w')
-            f.writelines(mutated_script_lines)
-            f.close()
+            # Create a folder containing all data from the Unity test run of this mutant
+            create_single_mutation_results_folder(file_name, i, mutated_script_lines, old_line, mutated_line)
 
             print("--------------------------------------")
 
-    print(f"All mutations generated for script: {UNITY_SCRIPT_FOLDER}/{file_name}")
+    print(f"All mutations generated for script: {file_path}")
     print("======================================")
 
 
@@ -629,6 +648,8 @@ def mutate_unity_scripts():
 
 def run_unity_tests(unity_project_path="F:/Unity/Projects/GraduPlatformer"):
     """ Runs test set of given Unity-project"""
+
+    print("Starting Unity test run...")
 
     subprocess.run(["C:/Program Files/Unity/Hub/Editor/2020.3.20f1/Editor/Unity.exe",
                     "-runTests", "-projectPath", unity_project_path.__str__(),
@@ -677,7 +698,7 @@ def main():
     global UNITY_SCRIPT_FOLDER
     global UNITY_TAG_MANAGER_ASSET
     project_script_folder_path = input("Give location of Unity project's Scripts-folder ")
-    project_tag_manager_path = input("Give location of Unity project's TagManager-asset")
+    project_tag_manager_path = input("Give location of Unity project's TagManager-asset ")
     UNITY_SCRIPT_FOLDER = Path(project_script_folder_path)
     UNITY_TAG_MANAGER_ASSET = Path(project_tag_manager_path)
 
@@ -691,7 +712,7 @@ def main():
 
     global BACKUP_SCRIPTS_FOLDER
     # Create backup-copy of the original scripts folder
-    backups_path = BACKUP_SCRIPTS_FOLDER/"BACKUP_SCRIPTS_{t.year}_{t.month}_{t.day}_{t.hour}_{t.minute}_{t.second}"
+    backups_path = BACKUP_SCRIPTS_FOLDER/f"BACKUP_SCRIPTS_{t.year}_{t.month}_{t.day}_{t.hour}_{t.minute}_{t.second}"
     print(f"Copying backup of original scripts to {backups_path}")
     shutil.copytree(UNITY_SCRIPT_FOLDER, backups_path)
     # Update global BACKUP_SCRIPTS_FOLDER variable with path to new backup folder

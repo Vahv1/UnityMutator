@@ -1,4 +1,6 @@
 from unittest import TestCase
+from pathlib import Path
+import shutil
 import UnityMutator
 import ResultsParser
 
@@ -10,6 +12,8 @@ script_with_only_fixedupdate = "E:/kurssit/GRADU/UnityMutator/UnitTestData/Enemy
 script_with_both_updates = "E:/kurssit/GRADU/UnityMutator/UnitTestData/Enemy_with_start_and_both_updates.cs"
 filler_script = "E:/kurssit/GRADU/UnityMutator/UnitTestData/Projectile_with_only_awake.cs"
 test_tag_manager = "E:/kurssit/GRADU/UnityMutator/UnitTestData/TagManager.asset"
+fake_unity_script = "E:/kurssit/GRADU/UnityMutator/FakeUnityProject/Assets/Scripts/GameManager.cs"
+TEMP_RESULTS_FILE_PATH = Path("E:/kurssit/GRADU/UnityMutator/unity_test_results.xml")
 
 
 class Test(TestCase):
@@ -291,6 +295,30 @@ class Test(TestCase):
         mutated_line = UnityMutator.create_mutation("child.transform.SetParent(null);", filler_script)
         self.assertEqual(None, mutated_line)
 
+    # ===== GENERAL FUNCTIONS =====
+    def test_create_unity_test_result_file_name(self):
+        result_file_name = UnityMutator.create_unity_test_result_file_name("PlayerController", 32)
+        self.assertEqual("unity_test_results_PlayerController_line_32.xml", result_file_name)
+
+    """def test_create_single_mutation_results_folder(self):
+        UnityMutator.MUTATION_RUN_RESULTS_FOLDER = Path("E:/kurssit/GRADU/UnityMutator/UnitTestData/"
+                                                        "TestDataMutationResults_00_00_00_00_00_00")
+        # Read mock up script to array
+        script = open(fake_unity_script, 'r')
+        script_lines = script.readlines()
+        script.close()
+        # Assign other variables that will be given as arguments
+        file_name = "GameManager.cs"
+        mutation_line_number = 14
+        old_line = "StartCoroutine(FakeCoroutine());"
+        new_line = "StartCoroutine(CoroutineMockUp.EmptyCoroutine());"
+
+        UnityMutator.create_single_mutation_results_folder(file_name, mutation_line_number, script_lines, old_line, new_line)
+
+        # Copy original unity_test_results.xml back to UnityMutator-folder where it was
+        # TODO
+        shutil.copyfile(source, TEMP_RESULTS_FILE_PATH)"""
+
     # ===== RESULTSPARSER =====
     def test_xml_escape(self):
         original_string = "RaycastHit2D hit = Physics2D.Raycast(rb.positiondir, 3, 1 << LayerMask.NameToLayer(\"NPC\"))"
@@ -304,6 +332,7 @@ class Test(TestCase):
         self.assertEqual(
             "if (letter1 == &apos;A&apos; &amp;&amp; letter2 == &apos;B&apos; &amp;&amp; letterAmount &gt; 26) weHaveAlphabet = true",
             new_string)
+
 
     # ===== CREAMUNITYTESTRUNNER =====
 

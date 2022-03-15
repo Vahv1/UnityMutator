@@ -9,7 +9,7 @@ from TestRun import TestRun
 from TestRun import TestResult
 
 # TODO TEMP FOR TESTING
-RESULTS_FOLDER = Path("E:/kurssit/GRADU/UnityMutator/Results/results_2022_3_2_17_32_13")
+RESULTS_FOLDER = Path("E:/kurssit/GRADU/UnityMutator/Results/results_2022_3_15_14_25_3")
 
 # Names of css-classes for highlighting killed and survived mutants in html
 KILLED_CSS_CLASS = "killed"
@@ -19,6 +19,11 @@ SURVIVED_CSS_CLASS = "survived"
 # Escapes characters from given string to it's valid xml
 def escape_xml(s):
     escaped_s = s.replace("&", "&amp;").replace("\'", "&apos;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;")
+    return escaped_s
+
+
+def escape_html(s):
+    escaped_s = s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
     return escaped_s
 
 
@@ -54,13 +59,21 @@ def parse_test_run(result_file_path, data_file_path, full_script=None):
         # Read the whole mutated script so it can be displayed in html-page
         full_script_file = open(full_script, 'r')
         script_lines = full_script_file.readlines()
-        # Format code lines as  <code>GetComponent<Rigidbody>();</code>  for .html
-        formatted_script_lines = ["<code>" + line.replace('\n', '</code>\n') for line in script_lines]
+        # Escaped needed characters for html-validity
+        escaped_script_lines = [escape_html(line) for line in script_lines]
+        # Add <code> and </code> tags to code line starts and ends
+        formatted_script_lines = ["<code>" + line.replace('\n', '</code>\n') for line in escaped_script_lines]
+
         # Format mutated line using correct css-class
         mutated_script_line = formatted_script_lines[int(mutation_line_number) - 1]
         css_class = SURVIVED_CSS_CLASS if final_result == TestResult.PASSED else KILLED_CSS_CLASS
         mutated_script_line = mutated_script_line.replace("<code>", f"<code class=\"{css_class}\">")
+
+        # Ending /code tag because end of file probably doesn't have new line which would have been replaced earlier
+        formatted_script_lines.append("</code>")
+        # Change the mutated line in formatted_script_lines list
         formatted_script_lines[int(mutation_line_number) - 1] = mutated_script_line
+
         # Concatenate lines to a single string for easy displaying in .html
         formatted_script = ''.join(formatted_script_lines)
     else:
@@ -82,7 +95,7 @@ def get_mutation_set_data(test_runs):
         print("get_mutation_set_data was given a list of 0 mutations")
         print("THIS SHOULD NOT HAPPEN")
 
-    survived = get_passed_amt(test_runs)  # Passed test set means mutation survived
+    survived = get_survived_amt(test_runs)  # Passed test set means mutation survived
     killed = total_mutations - survived   # Failed test set means mutation was killed
     mutation_score = killed / total_mutations
 
@@ -96,12 +109,12 @@ def get_mutation_set_data(test_runs):
 
 
 # Returns amount of passed tests from a list of test runs
-def get_passed_amt(test_runs):
-    passed = 0
+def get_survived_amt(test_runs):
+    survived = 0
     for t in test_runs:
-        if t.final_result == TestResult.PASSED:
-            passed += 1
-    return passed
+        if t.final_result == "survived":
+            survived += 1
+    return survived
 
 
 # Creates html-file of results with given parameters
