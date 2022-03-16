@@ -49,7 +49,7 @@ class Test(TestCase):
     # =========== MUTATION FUNCTIONS ===========
 
     # ===== LIFECYCLE METHODS =====
-
+    """
     def test_mutate_start_with_awake(self):
         script = open(script_with_start_and_awake, 'r')
         script_lines = script.readlines()
@@ -123,6 +123,7 @@ class Test(TestCase):
         mutated_line = UnityMutator.create_mutation(
             "transform.Rotate(0, 0, degreesPerSecond * Time.fixedDeltaTime);", filler_script)
         self.assertEqual("transform.Rotate(0, 0, degreesPerSecond * Time.deltaTime);", mutated_line)
+    """
 
     # ===== STUFF =====
 
@@ -194,6 +195,14 @@ class Test(TestCase):
     def test_mutate_coroutine(self):
         mutated_line = UnityMutator.create_mutation("yield return StartCoroutine(WaitAndPrint(2.0f));", filler_script)
         self.assertEqual("yield return StartCoroutine(CoroutineMockUp.EmptyCoroutine());", mutated_line)
+
+    def test_mutate_active_self(self):
+        mutated_line = UnityMutator.create_mutation("if (myObj.activeSelf && gameStarted == true)", filler_script)
+        self.assertEqual("if (myObj.activeInHierarchy && gameStarted == true)", mutated_line)
+
+    def test_mutate_active_in_hierarchy(self):
+        mutated_line = UnityMutator.create_mutation("activityState = obj1.activeInHierarchy && obj2.activeInHierarchy", filler_script)
+        self.assertEqual("activityState = obj1.activeSelf && obj2.activeSelf", mutated_line)
 
     # =====  VECTOR3 DIRECTIONS =====
 
@@ -268,6 +277,14 @@ class Test(TestCase):
     def test_mutate_vector_axis_z(self):
         mutated_line = UnityMutator.create_mutation("m_NewPosition.z = m_XValue;", filler_script)
         self.assertEqual("m_NewPosition.x = m_XValue;", mutated_line)
+
+    def test_mutate_magnitude(self):
+        mutated_line = UnityMutator.create_mutation("if (offset.magnitude > maxDistance)", filler_script)
+        self.assertEqual("if (offset.sqrMagnitude > maxDistance)", mutated_line)
+
+    def test_mutate_sqr_magnitude(self):
+        mutated_line = UnityMutator.create_mutation("float sqrLen = offset.sqrMagnitude;", filler_script)
+        self.assertEqual("float sqrLen = offset.magnitude;", mutated_line)
 
     # ===== TRANSFORM DIRECTION =====
 

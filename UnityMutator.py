@@ -36,10 +36,10 @@ C_SHARP_COMMENT_SYNTAX = ["//", "/*", "*/"]
 
 def init_mutation_operators():
     # TODO this should be done elsewhere more cleanly
-    MUT_OPS.append(MutationOperator("start", [" Start()", " Start ()"], mutate_start))
-    MUT_OPS.append(MutationOperator("awake", [" Awake()", " Awake ()"], mutate_awake))
-    MUT_OPS.append(MutationOperator("update", [" Update()", " Update ()"], mutate_update))
-    MUT_OPS.append(MutationOperator("fixed_update", [" FixedUpdate()", " FixedUpdate ()"], mutate_fixed_update))
+    # MUT_OPS.append(MutationOperator("start", [" Start()", " Start ()"], mutate_start))
+    # MUT_OPS.append(MutationOperator("awake", [" Awake()", " Awake ()"], mutate_awake))
+    # MUT_OPS.append(MutationOperator("update", [" Update()", " Update ()"], mutate_update))
+    # MUT_OPS.append(MutationOperator("fixed_update", [" FixedUpdate()", " FixedUpdate ()"], mutate_fixed_update))
     MUT_OPS.append(MutationOperator("destroy", [" Destroy(", " Destroy ("], mutate_destroy))
     MUT_OPS.append(MutationOperator("instantiate", [" Instantiate(", " Instantiate (", ".Instantiate(", ".Instantiate ("], mutate_instantiate))
     MUT_OPS.append(MutationOperator("gameobject_find", [" GameObject.Find(", " GameObject.Find ("], mutate_gameobject_find))
@@ -55,12 +55,16 @@ def init_mutation_operators():
     MUT_OPS.append(MutationOperator("vector3_direction", ["Vector3."], mutate_vector3_direction))
     MUT_OPS.append(MutationOperator("vector2_direction", ["Vector2."], mutate_vector2_direction))
     MUT_OPS.append(MutationOperator("transform_direction", ["transform.up", "transform.forward", "transform.right"], mutate_transform_direction))
-    MUT_OPS.append(MutationOperator("deltatime", ["Time.deltaTime"], mutate_deltatime))
-    MUT_OPS.append(MutationOperator("fixed_deltatime", ["Time.fixedDeltaTime"], mutate_fixed_deltatime))
+    # MUT_OPS.append(MutationOperator("deltatime", ["Time.deltaTime"], mutate_deltatime))
+    # MUT_OPS.append(MutationOperator("fixed_deltatime", ["Time.fixedDeltaTime"], mutate_fixed_deltatime))
     MUT_OPS.append(MutationOperator("transform_parent", ["transform.parent"], mutate_transform_parent))
     MUT_OPS.append(MutationOperator("transform_set_parent", [".SetParent(", ".SetParent ("], mutate_transform_set_parent))
     MUT_OPS.append(MutationOperator("vector_axis", [".x", ".y", ".z"], mutate_vector_axis))
     MUT_OPS.append(MutationOperator("coroutine", ["StartCoroutine(", "StartCoroutine ("], mutate_coroutine))
+    MUT_OPS.append(MutationOperator("active_self", [".activeSelf"], mutate_active_self))
+    MUT_OPS.append(MutationOperator("active_in_hierarchy", [".activeInHierarchy"], mutate_active_in_hierarchy))
+    MUT_OPS.append(MutationOperator("magnitude", [".magnitude"], mutate_magnitude))
+    MUT_OPS.append(MutationOperator("sqr_magnitude", [".sqrMagnitude"], mutate_sqr_magnitude))
 
 
 def get_mut_op(name):
@@ -225,7 +229,6 @@ def mutate_invoke_repeating(line, full_script_lines):
 
 def mutate_add_listener(line, full_script_lines):
     """ Mutates onClick.AddListener and <unityEvent>.AddListener """
-
     new_line = replace_single_parameter(line, "AddListener", "delegate {}")
     return new_line
 
@@ -339,6 +342,30 @@ def mutate_coroutine(line, full_script_lines):
         It can't be done here however, because this function is called before MutatedScripts-folder is created """
     # Mutate new line to call coroutine declared in CoroutineMockUp.cs
     new_line = replace_single_parameter(line, "StartCoroutine", "CoroutineMockUp.EmptyCoroutine()")
+    return new_line
+
+
+def mutate_active_self(line, full_script_lines):
+    """ Mutates activeSelf property checks to activeInHierarchy property checks """
+    new_line = line.replace(".activeSelf", ".activeInHierarchy")
+    return new_line
+
+
+def mutate_active_in_hierarchy(line, full_script_lines):
+    """ Mutates activeInHierarchy property checks to activeSelf property checks """
+    new_line = line.replace(".activeInHierarchy", ".activeSelf")
+    return new_line
+
+
+def mutate_magnitude(line, full_script_lines):
+    """ Mutates magnitude property checks to sqrMagnitude property checks """
+    new_line = line.replace(".magnitude", ".sqrMagnitude")
+    return new_line
+
+
+def mutate_sqr_magnitude(line, full_script_lines):
+    """ Mutates sqrMagnitude property checks to magnitude property checks """
+    new_line = line.replace(".sqrMagnitude", ".magnitude")
     return new_line
 
 
