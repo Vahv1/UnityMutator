@@ -1,6 +1,6 @@
-# TODO Create MutatedScripts-folder at start of execution and delete it at the end
-# TODO MITÄ JOS SAMALLA RIVILLÄ MONTA MUTATOITAVAA ESIM. TRANSFORM.FORWARD JA TRANSFORM.UP
-# TODO MULTILINE COMMENTIT MUTATOIDAAN MYÖS, MITÄHÄN SILLE VOIS TEHDÄ
+# TODO Multiple mutable syntaxes on same line should be somehow handled
+# TODO Multiline comments should be recognized too and not mutated
+# TODO Line number is one off in generated folder names
 import os
 import shutil
 from pathlib import Path
@@ -77,7 +77,7 @@ def get_mut_op(name):
 ''' =================== MUTATION OPERATORS =================== '''
 
 
-# TODO full_script_lines parametrin voi ottaa pois niistä missä ei tarvita
+# TODO remove full_script_lines-parameter from functions that don't need it
 # Mutates Start()-lines
 def mutate_start(line, full_script_lines):
     # Don't mutate Start() to Awake() if there is already Awake()-method in the script
@@ -720,7 +720,7 @@ def main():
 
     init_mutation_operators()
 
-    # TODO Should some folders be reseted at start, like MutatedScripts?
+    # TODO MutatedScripts-folder should be reset at start to prevent errors after interrupted runs
     # Get Unity-project's Scripts-folder and TagManager from user
     global UNITY_SCRIPT_FOLDER
     global UNITY_TAG_MANAGER_ASSET

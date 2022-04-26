@@ -2,12 +2,13 @@ import os
 import shutil
 import UnityMutator
 import ResultsParser
+import time
 from os import path
 from pathlib import Path
 from datetime import datetime
 
 # Mutations created by CREAM must be moved to this folder before running Unity tests
-CREAM_MUTATED_PROJECTS_FOLDER = Path("E:/kurssit/GRADU/CreamMutatedCode")
+CREAM_MUTATED_PROJECTS_FOLDER = Path("E:/kurssit/GRADU/ts3_afterUOI/MutatedCode")
 
 RESULTS_FOLDER = Path("E:/kurssit/GRADU/UnityMutator/Results")
 MUTATION_RUN_RESULTS_FOLDER = Path("")  # This should be set-up with timestamp as folder name when mutation is started
@@ -67,6 +68,11 @@ def run_tests_for_cream_mutated_files():
 
 
 def main():
+    start_time = time.time()
+
+    print("This is Unity Mutator - CreamUnityTestRunner\n"
+          "A program for running Unity-tests on Cream generated mutants of Unity-projects\n"
+          "======================================")
 
     # Create and set name for MUTATION_RUN_RESULTS_FOLDER where Unity test results of each mutation will be saved
     t = datetime.now()
@@ -78,6 +84,10 @@ def main():
     run_tests_for_cream_mutated_files()
 
     ResultsParser.parse_results_to_html(MUTATION_RUN_RESULTS_FOLDER)
+
+    # Stop execution timer
+    end_time = time.time()
+    print(f"Execution took {end_time-start_time} seconds")
 
 
 if __name__ == "__main__":

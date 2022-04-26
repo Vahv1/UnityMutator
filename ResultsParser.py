@@ -8,9 +8,6 @@ from jinja2 import Environment, PackageLoader
 from TestRun import TestRun
 from TestRun import TestResult
 
-# TODO TEMP FOR TESTING
-RESULTS_FOLDER = Path("E:/kurssit/GRADU/UnityMutator/Results/results_2022_3_15_14_25_3")
-
 # Names of css-classes for highlighting killed and survived mutants in html
 KILLED_CSS_CLASS = "killed"
 SURVIVED_CSS_CLASS = "survived"
@@ -41,19 +38,31 @@ def parse_test_run(result_file_path, data_file_path, full_script=None):
     If no full_script is given, assumes that test run was parsed from CREAM test run results
     and because of that full_script couldn't be obtained.
     """
-    # Get results and data as element tree
-    result_root = ET.parse(result_file_path).getroot()
-    data_root = ET.parse(data_file_path).getroot()
+    # If given files were None, parse a default failed test run
+    if result_file_path is None and data_file_path is None:
+        print("parse_test_run was given None files, parsing default failed test run...")
+        final_result = "killed"
+        tests_run = "1"
+        tests_passed = "0"
+        tests_failed = "1"
+        original_line = "No mutation info (test run was set as failed because it didn't generate test results at all)"
+        mutated_line = "No mutation info (test run was set as failed because it didn't generate test results at all)"
+        mutation_line_number = "No line mutation info (test run was set as failed because it didn't generate test results at all)"
+        mutated_file_name = "No mutation info (test run was set as failed because it didn't generate test results at all)"
+    else:
+        # Get results and data as element tree
+        result_root = ET.parse(result_file_path).getroot()
+        data_root = ET.parse(data_file_path).getroot()
 
-    # Read data from .xmls to variables
-    final_result = str_to_test_result(result_root.attrib["result"])
-    tests_run = result_root.attrib["total"]
-    tests_passed = result_root.attrib["passed"]
-    tests_failed = result_root.attrib["failed"]
-    original_line = data_root.attrib["original"]
-    mutated_line = data_root.attrib["mutation"]
-    mutation_line_number = data_root.attrib["line_number"]
-    mutated_file_name = data_root.attrib["file_name"]
+        # Read data from .xmls to variables
+        final_result = str_to_test_result(result_root.attrib["result"])
+        tests_run = result_root.attrib["total"]
+        tests_passed = result_root.attrib["passed"]
+        tests_failed = result_root.attrib["failed"]
+        original_line = data_root.attrib["original"]
+        mutated_line = data_root.attrib["mutation"]
+        mutation_line_number = data_root.attrib["line_number"]
+        mutated_file_name = data_root.attrib["file_name"]
 
     if full_script is not None:
         # Read the whole mutated script so it can be displayed in html-page
